@@ -1,0 +1,36 @@
+MODULE main
+VAR
+   level_a : {empty, ok, full}; -- lower tank
+   level_b : {empty, ok, full}; -- upper tank
+   pump : {on, off};
+ASSIGN
+   next(level_a) := case
+       level_a = empty : {empty, ok};
+       level_a = ok & pump = off : {ok, full};
+       level_a = ok & pump = on : {ok, empty, full};
+       level_a = full & pump = off : full;
+       level_a = full & pump = on : {ok, full};
+       TRUE : {ok, empty, full};
+   esac;
+   next(level_b) := case
+       level_b = empty & pump = off : empty;
+       level_b = empty & pump = on : {empty, ok};
+       level_b = ok & pump = off : {ok, empty};
+       level_b = ok & pump = on : {ok, empty, full};
+       level_b = full & pump = off : {ok, full};
+       level_b = full & pump = on : {ok, full};
+       TRUE : {ok, empty, full};
+   esac;
+    next(pump) := case
+       pump = off & (level_a = ok | level_a = full) &
+       (level_b = empty | level_b = ok) : on;
+       pump = on & (level_a = empty | level_b = full) : off;
+       TRUE : pump; -- keep pump status as it is
+   esac;
+INIT
+   (pump = off)
+SPEC
+   -- pump if always off if ground tank is empty or up tank is full
+   -- AG AF (pump = off -> (level_a = empty | level_b = full))
+   -- it is always possible to reach a state when the up tank is ok or full
+   AG (EF (level_b = ok | level_b = full))
